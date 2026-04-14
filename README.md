@@ -14,6 +14,8 @@ This directory contains pre-built, reusable agent definitions for common use cas
 - **[database.md](database.md)** - Database design, queries, optimization, and administration
 - **[api.md](api.md)** - API design, development, testing, and documentation
 - **[devops.md](devops.md)** - CI/CD, deployment, infrastructure, and operational excellence
+- **[debugging.md](debugging.md)** - Root-cause analysis, bug isolation, and regression prevention
+- **[system-design.md](system-design.md)** - Scalable architecture planning, tradeoff analysis, and reliability design
 
 ### Analysis & Data
 
@@ -25,6 +27,7 @@ This directory contains pre-built, reusable agent definitions for common use cas
 
 - **[writing.md](writing.md)** - Content creation, editing, and various writing styles
 - **[summarizer.md](summarizer.md)** - Condensing information and creating concise summaries
+- **[prompt-engineering.md](prompt-engineering.md)** - Prompt design, evaluation, and LLM workflow optimization
 
 ### Finance & Business
 
@@ -108,7 +111,7 @@ Agents that analyze and provide information without making changes:
 
 ### Code-Modifying Agents
 Agents that can edit code and files:
-- Linting, Testing, Code Review, Documentation, Database, API, DevOps, Writing, Data Analysis
+- Linting, Testing, Code Review, Documentation, Database, API, DevOps, Debugging, System Design, Writing, Data Analysis, Prompt Engineering
 
 ### Development Workflow
 Typical agent combinations:
