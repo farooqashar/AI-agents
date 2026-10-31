@@ -27,7 +27,8 @@ def validate(root):
                     r'  edit: (allow|deny)', r'  bash: (allow|deny)', r'  web: (allow|deny)']
         if len(lines) != len(expected) or any(not re.fullmatch(pattern, line) for pattern, line in zip(expected, lines)):
             errors.append(f'{path.name}: invalid or incomplete metadata')
-        headings = re.findall(r'^## (.+)$', text, re.M)
+        body = re.sub(r'^```[^\n]*\n.*?^```[^\n]*$', '', text, flags=re.M | re.S)
+        headings = re.findall(r'^## (.+)$', body, re.M)
         if headings != list(SECTIONS):
             errors.append(f'{path.name}: expected the six contract sections in order')
         for section in SECTIONS:
