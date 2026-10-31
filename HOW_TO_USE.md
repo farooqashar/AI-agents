@@ -1,61 +1,36 @@
-# How to Use These Agent Definitions
+# Using the agent definitions
 
-These markdown files are agent definitions that can be used **directly** as subagents in Claude Code, OpenAI, and other AI tools.
+These files contain reusable task instructions. They are not a runtime, tool implementation, or automatic installer.
 
-## Using with Claude Code
+## Start with a root-level file
 
-When you want to spawn a specialized subagent, tell Claude to use one of these definitions:
+From a checkout, ask your assistant:
 
-```
-"Use the agent definition from agents/finance.md as a subagent to analyze my budget"
-
-"Read agents/security.md and spawn a subagent with those instructions to review this code"
-
-"Create a subagent using agents/research.md to investigate this topic"
+```text
+Read debugging.md and use its instructions to investigate this failing endpoint.
+Expected: HTTP 200. Actual: HTTP 500. Relevant files: app/routes.py and tests/test_routes.py.
+Produce a minimal fix and report verification evidence.
 ```
 
-Claude Code will:
-1. Read the markdown file
-2. Extract the system prompt and instructions
-3. Spawn a subagent with that expertise
-4. The subagent operates with the specialized knowledge defined in the file
+For a review:
 
-## Using with OpenAI/ChatGPT
-
-```
-"Act as the agent defined in agents/travel.md and help me plan a trip"
-
-"Load the agent instructions from agents/writing.md and help me write this article"
+```text
+Read code-review.md and review this diff. Report findings with severity,
+file locations, impact, and verification gaps. Do not modify files.
 ```
 
-## Using with Other Tools
+When files are not locally accessible, attach the definition or supply its contents. Give the agent its task context, constraints, and acceptance criteria; do not assume it inherits conversation history.
 
-Any AI tool that supports custom instructions or system prompts can use these:
+## Host integration
 
-- **Custom GPTs**: Use the markdown content as custom instructions
-- **Claude Projects**: Add as project knowledge
-- **API calls**: Use as system prompt in API requests
+For native subagents, use the host's documented installation directory, configuration schema, and invocation mechanism. The frontmatter here is repository metadata, not a promise that any particular host recognizes or enforces it. Verify compatibility against the installed host version before creating an adapter.
 
-## Example
+For ChatGPT, projects, or API integrations, supply the Markdown as instructions using the interface available to you. File references alone do not create tools or subprocesses. API applications must supply tools and enforce permissions separately.
 
-```
-You: "Use agents/finance.md as a subagent to analyze my investment portfolio"
+## Permissions
 
-Claude: [Reads finance.md, spawns subagent with that expertise]
+Every definition declares edit, bash, and web explicitly. These describe intended access only. The host's policies remain authoritative; Bash may write files or invoke network clients even when edit or web is denied. Use a restricted host environment when read-only execution is required.
 
-Finance Subagent: "I'm a finance expert. Let me analyze your portfolio..."
-```
+## Adding an agent
 
-## Why This Works
-
-- ✅ **Direct use**: No code generation, just use as-is
-- ✅ **Specialized**: Each agent has deep domain expertise
-- ✅ **Consistent**: Same agent definitions work across tools
-- ✅ **Simple**: Just reference the markdown file
-
-## Adding New Agents
-
-1. Create a new `.md` file following the format
-2. Reference it when spawning subagents
-
-That's it!
+Copy [templates/agent.md](templates/agent.md), define one primary outcome, add its root-level link to [README.md](README.md), and verify the six required sections. Test representative successful, failure, and boundary cases before relying on it.

@@ -46,16 +46,16 @@ This directory contains pre-built, reusable agent definitions for common use cas
 
 ## Usage
 
-These agent definitions are designed to be used **directly** as subagents in Claude Code, OpenAI, and other AI tools.
+These Markdown definitions can be reused as task instructions. Native agent discovery, installation, supported frontmatter, and permissions depend on the host tool; referencing a file alone does not install a subagent.
 
 ### Quick Start
 
 Tell your AI assistant to use an agent definition:
 
 ```
-"Use agents/finance.md as a subagent to analyze this budget"
-"Spawn a subagent from agents/security.md to review this code"
-"Act as the agent defined in agents/research.md"
+"Use finance.md as a subagent to analyze this budget"
+"Spawn a subagent from security.md to review this code"
+"Act as the agent defined in research.md"
 ```
 
 The AI tool will read the markdown file and operate as that specialized agent.
@@ -90,8 +90,8 @@ permission:
 To create your own agent:
 
 1. Create a new `.md` file in this directory
-2. Add the required frontmatter (description, mode, permissions)
-3. Write detailed system instructions
+2. Add explicit description, mode, and edit/bash/web permissions
+3. Follow the six sections in [templates/agent.md](templates/agent.md)
 4. Define focus areas and best practices
 5. Include examples where helpful
 
@@ -106,8 +106,8 @@ To create your own agent:
 ## Agent Categories
 
 ### Read-Only Agents
-Agents that analyze and provide information without making changes:
-- Research, Summarizer, Browser, Finance, Health, Learning
+Agents intended for analysis (Bash-enabled agents can still change state; host restrictions must enforce read-only execution):
+- Research, Summarizer, Browser, Finance, Health, Learning, Travel, Activities/Food, Productivity
 
 ### Code-Modifying Agents
 Agents that can edit code and files:
@@ -133,12 +133,10 @@ To contribute a new agent:
 6. Test the agent with real tasks
 7. Submit a pull request
 
-## Related Resources
+## Repository and attribution
 
-- [Main Project README](../README.md)
-- [Project Documentation](../docs/)
-- Issue Tracker: [GitHub Issues](https://github.com/santai-inc/santai-cli/issues)
+Agent files live at the repository root. Use [HOW_TO_USE.md](HOW_TO_USE.md) for invocation guidance and [templates/agent.md](templates/agent.md) for new definitions.
 
-## License
+Report issues in [this repository](https://github.com/farooqashar/AI-agents/issues).
 
-These agent definitions are part of the santai-cli project and follow the project's license terms.
+The original registry referred to santai-cli. This repository currently has no LICENSE file; confirm provenance and applicable license terms before redistribution. This cleanup does not assign a new license.
