@@ -6,6 +6,10 @@ This directory contains pre-built, reusable agent definitions for common use cas
 
 ### Development & Engineering
 
+- **[frontend.md](frontend.md)** - React/TypeScript UI behavior, accessibility, and integration
+- **[rag.md](rag.md)** - Ingestion, retrieval, grounded answers, and evaluation
+- **[mcp.md](mcp.md)** - Version-aware MCP client/server integration
+
 - **[linting.md](linting.md)** - Code quality checks, style enforcement, and best practices
 - **[testing.md](testing.md)** - Test generation, validation, and quality assurance
 - **[code-review.md](code-review.md)** - Code review with focus on quality, security, and best practices
@@ -153,3 +157,9 @@ The original registry referred to santai-cli. This repository currently has no L
 | Technical reference updates | Documentation | Writing for general prose |
 
 Long historical snippets live under `examples/`; inspect the current stack before adapting them.
+
+## Validation and behavioral evaluation
+
+Run `python scripts/validate_agents.py` to validate frontmatter, contract sections, registry coverage, local Markdown links, and evaluation case structure. CI runs the same check.
+
+[evals/cases.yaml](evals/cases.yaml) contains manual behavioral evaluation scenarios in JSON-compatible YAML. Supply each input to the listed agent, record its output and actual tool evidence, and score every pass criterion. Re-run a baseline and candidate on the same model/host configuration. Structural validation does not execute agents or establish their quality.
