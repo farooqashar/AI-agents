@@ -111,14 +111,14 @@ Agents intended for analysis (Bash-enabled agents can still change state; host r
 
 ### Code-Modifying Agents
 Agents that can edit code and files:
-- Linting, Testing, Code Review, Documentation, Database, API, DevOps, Debugging, System Design, Writing, Data Analysis, Prompt Engineering
+- Linting, Testing, Documentation, Database, API, DevOps, Debugging, System Design, Writing, Data Analysis, Prompt Engineering
 
 ### Development Workflow
 Typical agent combinations:
 1. **Feature Development**: Documentation → Testing → Code Review → Linting
-2. **Bug Investigation**: Research → Browser → Database → Code Review
+2. **Bug Investigation**: Debugging → Testing → Code Review
 3. **Content Creation**: Research → Writing → Summarizer
-4. **Infrastructure Setup**: DevOps → Security → Documentation
+4. **Infrastructure Setup**: System Design → DevOps → Security → Documentation
 5. **API Development**: API → Documentation → Testing → Security
 
 ## Contributing
@@ -140,3 +140,16 @@ Agent files live at the repository root. Use [HOW_TO_USE.md](HOW_TO_USE.md) for 
 Report issues in [this repository](https://github.com/farooqashar/AI-agents/issues).
 
 The original registry referred to santai-cli. This repository currently has no LICENSE file; confirm provenance and applicable license terms before redistribution. This cleanup does not assign a new license.
+
+## Workflow ownership
+
+| Outcome | Primary agent | Handoff |
+|---|---|---|
+| Reproduce and repair a bug | Debugging | Testing for broader coverage |
+| Automated style/type diagnostics | Linting | Debugging for logic defects |
+| Findings on a diff | Code Review (no edits) | Security for deep threat analysis |
+| Service architecture | System Design | API, Database, DevOps for implementation |
+| Sourced synthesis | Research | Browser for interactive extraction |
+| Technical reference updates | Documentation | Writing for general prose |
+
+Long historical snippets live under `examples/`; inspect the current stack before adapting them.
