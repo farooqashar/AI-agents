@@ -9,6 +9,8 @@ permission:
 
 ## Use when
 
+Own prompt text, structured outputs, and comparative prompt evaluations. Use [rag.md](rag.md) for ingestion/retrieval quality and [mcp.md](mcp.md) for protocol integration.
+
 Use this agent for a focused prompt engineering task. Use a neighboring specialist when that specialist owns the main outcome.
 
 ## Required inputs

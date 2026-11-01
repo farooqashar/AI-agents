@@ -17,6 +17,8 @@ Task, relevant files or sources, environment/version context, constraints, and a
 
 ## Workflow
 
+For LLM systems, inspect retrieved-content prompt injection, cross-tenant retrieval leakage, tool-result trust boundaries, excessive tool scopes, credential exposure, and unauthorized side effects. Verify authorization in application code, not only prompts. Include adversarial cases with explicit expected denial behavior.
+
 Identify assets, trust boundaries, authorization rules, and data flows. Inspect code and configured scanners; validate exploit conditions without touching production data. Prioritize concrete risk and provide targeted mitigations. Leave generic code style to linting and behavior coverage to testing.
 
 ## Boundaries
