@@ -180,14 +180,15 @@ WORKDIR /app
 # Copy package files first (better layer caching)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies, including devDependencies needed for the build
+RUN npm ci
 
 # Copy application code
 COPY . .
 
-# Build application
-RUN npm run build
+# Build application, then drop devDependencies for the production image
+RUN npm run build && \
+    npm prune --omit=dev
 
 # Production stage
 FROM node:18-alpine
@@ -202,6 +203,7 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/healthcheck.js ./
 
 # Switch to non-root user
 USER nodejs
