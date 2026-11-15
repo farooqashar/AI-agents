@@ -446,18 +446,23 @@ BACKUP_FILE="$BACKUP_DIR/backup_$DATE.sql.gz"
 
 fail() {
   echo "Backup failed: $DATE ($1)" | mail -s "Backup Failed" admin@example.com || true
-  rm -f "$BACKUP_FILE"
   exit 1
 }
 
+# Remove an incomplete or invalid archive, then fail
+discard() {
+  rm -f "$BACKUP_FILE"
+  fail "$1"
+}
+
 # Create backup
-pg_dump "$DB_NAME" | gzip > "$BACKUP_FILE" || fail "pg_dump or compression"
+pg_dump "$DB_NAME" | gzip > "$BACKUP_FILE" || discard "pg_dump or compression"
 
 # Verify the archive before relying on it
-gzip -t "$BACKUP_FILE" || fail "archive verification"
+gzip -t "$BACKUP_FILE" || discard "archive verification"
 
-# Upload to S3
-aws s3 cp "$BACKUP_FILE" "s3://my-backups/db/$DATE.sql.gz" || fail "S3 upload"
+# Upload to S3; on failure keep the verified local archive for recovery or retry
+aws s3 cp "$BACKUP_FILE" "s3://my-backups/db/$DATE.sql.gz" || fail "S3 upload, local backup kept at $BACKUP_FILE"
 
 # Keep only last 30 days locally (runs only after a verified, uploaded backup)
 find "$BACKUP_DIR" -name "*.sql.gz" -mtime +30 -delete
