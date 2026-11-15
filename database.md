@@ -205,10 +205,14 @@ SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 SELECT * FROM posts ORDER BY created_at DESC LIMIT 20 OFFSET 40;
 
 -- Cursor pagination (better performance)
+-- Use a unique tie-breaker (id) so rows sharing a timestamp are not skipped.
+-- The cursor is the (created_at, id) of the last row on the previous page.
 SELECT * FROM posts 
-WHERE created_at < '2024-01-01 12:00:00'
-ORDER BY created_at DESC 
+WHERE (created_at, id) < ('2024-01-01 12:00:00', 4821)
+ORDER BY created_at DESC, id DESC 
 LIMIT 20;
+-- Without row-value support: WHERE created_at < :ts OR (created_at = :ts AND id < :id)
+-- Index to match: CREATE INDEX idx_posts_created_id ON posts(created_at, id);
 ```
 
 **Soft deletes**:
