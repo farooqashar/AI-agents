@@ -65,8 +65,17 @@ REST API design principles:
 - **GET**: Retrieve resources (safe, idempotent, cacheable)
 - **POST**: Create new resources (not idempotent)
 - **PUT**: Update/replace entire resource (idempotent)
-- **PATCH**: Partial update (idempotent)
+- **PATCH**: Partial update (not guaranteed idempotent; depends on the patch semantics)
 - **DELETE**: Remove resource (idempotent)
+
+**PATCH idempotency and safe retries**:
+- RFC 5789 section 2 defines PATCH as neither safe nor idempotent. Whether repeating a request is harmless depends on what the patch does.
+- Setting fields to fixed values (for example a JSON Merge Patch of `{"status": "active"}`) is idempotent in practice.
+- Relative or append operations are not: applying the JSON Patch `[{"op": "add", "path": "/items/-", "value": "x"}]` twice to `{"items": []}` yields `["x", "x"]`, and an increment applied twice counts twice.
+- Do not retry PATCH automatically unless you know the operation is idempotent or the request is made conditional.
+- Make PATCH conditional with ETags: read the resource, send `If-Match: "<etag>"` with the PATCH, and have the server return `412 Precondition Failed` when the resource has changed. A retried request whose first attempt succeeded then fails safely instead of applying twice.
+- For non-idempotent operations that clients must retry, accept an `Idempotency-Key` header and return the stored result for a repeated key.
+- Reference: https://www.rfc-editor.org/rfc/rfc5789#section-2
 
 ```
 GET    /users          # List users
