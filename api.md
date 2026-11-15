@@ -266,6 +266,8 @@ Link: <https://api.example.com/v2/users>; rel="successor-version"
 
 **Schema definition**:
 ```graphql
+scalar DateTime
+
 type User {
   id: ID!
   username: String!
@@ -298,6 +300,12 @@ input CreateUserInput {
   username: String!
   email: String!
   password: String!
+}
+
+input UpdateUserInput {
+  username: String
+  email: String
+  password: String
 }
 ```
 
@@ -391,6 +399,21 @@ components:
           type: string
         email:
           type: string
+    CreateUserInput:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
 ```
 
 **Documentation elements**:
