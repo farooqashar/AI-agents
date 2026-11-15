@@ -436,27 +436,33 @@ groups:
 ```bash
 #!/bin/bash
 # Database backup script
+# pipefail: a pg_dump failure fails the pipeline even though gzip succeeds
+set -euo pipefail
 
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
 BACKUP_DIR="/backups"
 DB_NAME="myapp"
+BACKUP_FILE="$BACKUP_DIR/backup_$DATE.sql.gz"
+
+fail() {
+  echo "Backup failed: $DATE ($1)" | mail -s "Backup Failed" admin@example.com || true
+  rm -f "$BACKUP_FILE"
+  exit 1
+}
 
 # Create backup
-pg_dump $DB_NAME | gzip > "$BACKUP_DIR/backup_$DATE.sql.gz"
+pg_dump "$DB_NAME" | gzip > "$BACKUP_FILE" || fail "pg_dump or compression"
+
+# Verify the archive before relying on it
+gzip -t "$BACKUP_FILE" || fail "archive verification"
 
 # Upload to S3
-aws s3 cp "$BACKUP_DIR/backup_$DATE.sql.gz" \
-  "s3://my-backups/db/$DATE.sql.gz"
+aws s3 cp "$BACKUP_FILE" "s3://my-backups/db/$DATE.sql.gz" || fail "S3 upload"
 
-# Keep only last 30 days locally
-find $BACKUP_DIR -name "*.sql.gz" -mtime +30 -delete
+# Keep only last 30 days locally (runs only after a verified, uploaded backup)
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +30 -delete
 
-# Verify backup
-if [ $? -eq 0 ]; then
-  echo "Backup successful: $DATE"
-else
-  echo "Backup failed: $DATE" | mail -s "Backup Failed" admin@example.com
-fi
+echo "Backup successful: $DATE"
 ```
 
 **Cost optimization strategies**:
