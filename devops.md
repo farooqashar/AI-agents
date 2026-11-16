@@ -361,12 +361,25 @@ app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
   res.on('finish', () => {
     // Label by route template (e.g. /users/:id), not req.path/req.originalUrl (unbounded cardinality)
-    const route = req.route ? req.baseUrl + req.route.path : 'unmatched';
+    const route = req.route ? (req.routePrefix ?? req.baseUrl) + req.route.path : 'unmatched';
     end({ method: req.method, route, status_code: res.statusCode });
     httpRequestTotal.inc({ method: req.method, route, status_code: res.statusCode });
   });
   next();
 });
+
+// req.baseUrl is the concrete mount URL (/users/123), so mount routers on
+// parameterised paths (and routers nested under them) through this to keep the template
+const mountRouter = (template, router) => (req, res, next) => {
+  const prev = req.routePrefix;
+  req.routePrefix = (prev ?? '') + template;
+  router(req, res, (err) => {
+    req.routePrefix = prev;
+    next(err);
+  });
+};
+
+app.use('/users/:id', mountRouter('/users/:id', ordersRouter));
 ```
 
 **Structured logging**:
