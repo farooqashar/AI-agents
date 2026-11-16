@@ -360,8 +360,10 @@ const activeConnections = new promClient.Gauge({
 app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
   res.on('finish', () => {
-    end({ method: req.method, route: req.route, status_code: res.statusCode });
-    httpRequestTotal.inc({ method: req.method, route: req.route, status_code: res.statusCode });
+    // Label by route template (e.g. /users/:id), not req.path/req.originalUrl (unbounded cardinality)
+    const route = req.route ? req.baseUrl + req.route.path : 'unmatched';
+    end({ method: req.method, route, status_code: res.statusCode });
+    httpRequestTotal.inc({ method: req.method, route, status_code: res.statusCode });
   });
   next();
 });
