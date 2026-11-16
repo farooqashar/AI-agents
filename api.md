@@ -472,11 +472,18 @@ describe('Users API', () => {
   test('POST /users creates user', async () => {
     const userData = {
       username: 'testuser',
-      email: 'test@example.com'
+      email: 'test@example.com',
+      password: 'S3cure-pass!'
     };
     const response = await api.post('/users', userData);
     expect(response.status).toBe(201);
     expect(response.body.username).toBe('testuser');
+    expect(response.body.password).toBeUndefined();
+  });
+
+  test('POST /users without required field returns 422', async () => {
+    const response = await api.post('/users', { username: 'testuser' });
+    expect(response.status).toBe(422);
   });
 
   test('GET /users/invalid returns 404', async () => {
