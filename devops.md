@@ -65,12 +65,14 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       
       - name: Set up environment
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: '18'
+          # Pick a supported LTS from https://nodejs.org/en/about/previous-releases
+          # and keep it on the same major as the Dockerfile's base image
+          node-version: '24'
           cache: 'npm'
       
       - name: Install dependencies
@@ -94,10 +96,12 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       
       - name: Run security scan
-        uses: snyk/actions/node@master
+        # Third-party action pinned to a full commit SHA (v1.0.0): a branch or tag
+        # can be moved, and this job has access to SNYK_TOKEN
+        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       
@@ -171,8 +175,9 @@ resource "aws_autoscaling_group" "app" {
 
 **Docker best practices**:
 ```dockerfile
-# Use specific version tags, not 'latest'
-FROM node:18-alpine AS builder
+# Use specific version tags, not 'latest'. Pick a supported LTS from the
+# Node.js release schedule and keep it on the same major as CI's node-version
+FROM node:24-alpine AS builder
 
 # Create app directory
 WORKDIR /app
@@ -191,7 +196,7 @@ RUN npm run build && \
     npm prune --omit=dev
 
 # Production stage
-FROM node:18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
