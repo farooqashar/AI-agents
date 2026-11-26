@@ -194,7 +194,20 @@ COMMIT;
 -- REPEATABLE READ: Prevents non-repeatable reads
 -- SERIALIZABLE: Strictest, prevents all anomalies
 
-SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+-- Set the level inside the transaction it applies to (PostgreSQL):
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+  SELECT balance FROM accounts WHERE id = 1;  -- sees one snapshot for the whole transaction
+COMMIT;
+
+-- Equivalent: SET TRANSACTION must be the first statement after BEGIN.
+-- Outside a transaction block PostgreSQL only warns and it has no effect.
+BEGIN;
+  SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+  SELECT balance FROM accounts WHERE id = 1;
+COMMIT;
+
+-- MySQL differs: SET TRANSACTION (without SESSION/GLOBAL) applies to the
+-- *next* transaction, so it is issued before START TRANSACTION.
 ```
 
 **Common patterns**:
@@ -245,8 +258,8 @@ CREATE TABLE audit_log (
 Best practices:
 - Make migrations reversible (include DOWN migration)
 - Test migrations on copy of production data
-- Use transactions where supported
-- Add indexes concurrently (Postgres) to avoid locking
+- Use transactions where supported (except for steps that cannot run in one, such as `CREATE INDEX CONCURRENTLY`)
+- Add indexes concurrently (Postgres) to avoid locking; run them in their own non-transactional migration, since most migration tools wrap each migration in a transaction by default
 - Split large migrations into smaller steps
 - Avoid data transformations in schema migrations when possible
 - Back up before running migrations
@@ -257,14 +270,33 @@ Best practices:
 -- ✅ Add nullable column (safe)
 ALTER TABLE users ADD COLUMN phone VARCHAR(20);
 
--- ✅ Then make NOT NULL in later migration after backfill
+-- ✅ Then make NOT NULL in later migrations without a long ACCESS EXCLUSIVE lock
+-- 1. Add the check without scanning existing rows (brief lock only)
+ALTER TABLE users ADD CONSTRAINT users_phone_not_null CHECK (phone IS NOT NULL) NOT VALID;
+-- 2. Backfill existing rows (in batches on large tables)
+UPDATE users SET phone = '' WHERE phone IS NULL;
+-- 3. Validate: scans the table but takes a weaker lock (reads and writes continue)
+ALTER TABLE users VALIDATE CONSTRAINT users_phone_not_null;
+-- 4. SET NOT NULL now skips the full-table scan because the valid CHECK proves no NULLs
+ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
+-- 5. Drop the now-redundant check
+ALTER TABLE users DROP CONSTRAINT users_phone_not_null;
+-- (Newer PostgreSQL versions also accept NOT NULL ... NOT VALID directly.)
+
+-- ⚠️ Plain SET NOT NULL takes an ACCESS EXCLUSIVE lock and scans the whole table,
+-- blocking reads and writes on large tables
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
 
--- ⚠️ Add NOT NULL immediately (risky if table has data)
+-- ❌ Add NOT NULL without a default: fails outright if the table has any rows
 ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL;
+-- ✅ With a constant default it succeeds (no table rewrite since PostgreSQL 11)
+ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT '';
 
--- ✅ Create index concurrently (Postgres, doesn't lock)
+-- ✅ Create index concurrently (Postgres, doesn't block writes)
+-- Cannot run inside a transaction block: put it in its own non-transactional migration.
+-- A failed build leaves an INVALID index behind: drop it and retry.
 CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+-- DROP INDEX CONCURRENTLY IF EXISTS idx_users_email;  -- cleanup after a failed build
 
 -- ⚠️ Regular index creation (locks table)
 CREATE INDEX idx_users_email ON users(email);
