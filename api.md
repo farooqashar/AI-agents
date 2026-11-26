@@ -204,6 +204,7 @@ X-RateLimit-Remaining: 999
 X-RateLimit-Reset: 1640000000
 
 Response when exceeded: 429 Too Many Requests
+Retry-After: 60  # Standard header (RFC 6585, RFC 9110); clients should honour it
 {
   "error": {
     "code": "RATE_LIMIT_EXCEEDED",
@@ -255,7 +256,11 @@ GET /users?search=john            # Search query
 **Header versioning**:
 ```
 GET /users
-Accept: application/vnd.api+json; version=1
+Accept: application/vnd.example.v1+json
+
+Response headers:
+Content-Type: application/vnd.example.v1+json
+Vary: Accept  # So caches don't serve one version's response to another version's client
 ```
 
 **Query parameter** (not recommended):
@@ -265,10 +270,13 @@ Accept: application/vnd.api+json; version=1
 
 **Deprecation**:
 ```
+# Deprecation (RFC 9745): when it was or will be deprecated, as @<unix-timestamp>
+# Sunset (RFC 8594): when it stops working; must not be earlier than Deprecation
 Response headers:
-Sunset: Sat, 31 Dec 2024 23:59:59 GMT
-Deprecation: true
-Link: <https://api.example.com/v2/users>; rel="successor-version"
+Deprecation: @1798761599
+Sunset: Wed, 30 Jun 2027 23:59:59 GMT
+Link: <https://api.example.com/v2/users>; rel="successor-version",
+      <https://developer.example.com/deprecations/v1-users>; rel="deprecation"; type="text/html"
 ```
 
 **GraphQL API design**:
