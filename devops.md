@@ -586,42 +586,92 @@ app.get('/health', async (req, res) => {
 ---
 - name: Configure web servers
   hosts: webservers
-  become: yes
-  
+  become: true
+
   vars:
     app_user: webapp
     app_port: 3000
-    
+    node_major: 24  # Keep in step with the CI and Docker examples
+
+  handlers:
+    - name: Restart webapp
+      ansible.builtin.systemd_service:
+        name: webapp
+        state: restarted
+        daemon_reload: true
+
   tasks:
+    # NodeSource's nodejs package includes npm; the distro one is older and doesn't
+    - name: Add NodeSource repository
+      ansible.builtin.deb822_repository:
+        name: nodesource
+        uris: "https://deb.nodesource.com/node_{{ node_major }}.x"
+        suites: nodistro
+        components: main
+        signed_by: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+
     - name: Install Node.js
-      apt:
+      ansible.builtin.apt:
         name: nodejs
         state: present
-        update_cache: yes
-    
+        update_cache: true
+
     - name: Create app user
-      user:
+      ansible.builtin.user:
         name: "{{ app_user }}"
-        state: present
-        shell: /bin/bash
-    
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+
+    # Trailing slash copies the contents, so package.json lands in /opt/webapp
     - name: Deploy application
-      copy:
-        src: /path/to/app
+      ansible.builtin.copy:
+        src: /path/to/app/
         dest: /opt/webapp
         owner: "{{ app_user }}"
-        mode: '0755'
-    
-    - name: Install dependencies
-      npm:
+        group: "{{ app_user }}"
+        mode: '0644'
+        directory_mode: '0755'
+      notify: Restart webapp
+
+    # Needs the community.general collection
+    - name: Install production dependencies
+      community.general.npm:
         path: /opt/webapp
-        state: present
-    
+        ci: true
+        production: true
+      become: true
+      become_user: "{{ app_user }}"
+      environment:
+        npm_config_cache: /tmp/webapp-npm-cache  # app user has no home
+      notify: Restart webapp
+
+    - name: Write systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/webapp.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Web application
+          After=network.target
+
+          [Service]
+          User={{ app_user }}
+          WorkingDirectory=/opt/webapp
+          Environment=PORT={{ app_port }} NODE_ENV=production
+          ExecStart=/usr/bin/node server.js
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart webapp
+
     - name: Start application service
-      systemd:
+      ansible.builtin.systemd_service:
         name: webapp
         state: started
-        enabled: yes
+        enabled: true
+        daemon_reload: true
 ```
 
 When reviewing infrastructure or pipelines:
