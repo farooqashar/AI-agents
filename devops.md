@@ -350,15 +350,31 @@ const httpRequestTotal = new promClient.Counter({
   labelNames: ['method', 'route', 'status_code']
 });
 
-// Active connections gauge
-const activeConnections = new promClient.Gauge({
-  name: 'active_connections',
-  help: 'Number of active connections'
+// In-flight requests gauge (middleware sees requests, not TCP connections)
+const httpRequestsInFlight = new promClient.Gauge({
+  name: 'http_requests_in_flight',
+  help: 'Number of HTTP requests currently being served'
+});
+
+promClient.collectDefaultMetrics(); // process CPU, memory, event loop lag, GC
+
+// Don't expose /metrics publicly: bind it to an internal port or protect it
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', promClient.register.contentType);
+  res.end(await promClient.register.metrics());
 });
 
 // Instrument middleware
 app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
+  httpRequestsInFlight.inc();
+  let done = false;
+  // 'close' fires after 'finish' and also when the client aborts; guard so it decrements once
+  res.on('close', () => {
+    if (done) return;
+    done = true;
+    httpRequestsInFlight.dec();
+  });
   res.on('finish', () => {
     // Label by route template (e.g. /users/:id), not req.path/req.originalUrl (unbounded cardinality)
     const route = req.route ? (req.routePrefix ?? req.baseUrl) + req.route.path : 'unmatched';
@@ -416,18 +432,21 @@ groups:
     rules:
       - alert: HighErrorRate
         expr: |
-          rate(http_requests_total{status_code=~"5.."}[5m]) > 0.05
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+          sum(rate(http_requests_total[5m])) > 0.05
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "High error rate detected"
-          description: "Error rate is {{ $value }} errors/sec"
+          description: "{{ $value | humanizePercentage }} of requests are failing with 5xx"
       
       - alert: HighResponseTime
+        # Keep the threshold on a histogram bucket bound (2 is one of [0.1, 0.5, 1, 2, 5])
         expr: |
-          histogram_quantile(0.95, 
-            rate(http_request_duration_seconds_bucket[5m])
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
           ) > 2
         for: 5m
         labels:
