@@ -270,16 +270,21 @@ Best practices:
 -- ✅ Add nullable column (safe)
 ALTER TABLE users ADD COLUMN phone VARCHAR(20);
 
--- ✅ Then make NOT NULL in later migrations without a long ACCESS EXCLUSIVE lock
--- 1. Add the check without scanning existing rows (brief lock only)
-ALTER TABLE users ADD CONSTRAINT users_phone_not_null CHECK (phone IS NOT NULL) NOT VALID;
--- 2. Backfill existing rows (in batches on large tables)
+-- ✅ Then make NOT NULL in later migrations without a long ACCESS EXCLUSIVE lock.
+-- Run each step in its own transaction (its own migration): locks are held until
+-- COMMIT, so step 3's lock must not stay open through the backfill or validation.
+-- 1. Stop new NULLs: add a default and deploy app code that never writes NULL
+ALTER TABLE users ALTER COLUMN phone SET DEFAULT '';
+-- 2. Backfill existing rows (in batches on large tables, one transaction per batch)
 UPDATE users SET phone = '' WHERE phone IS NULL;
--- 3. Validate: scans the table but takes a weaker lock (reads and writes continue)
+-- 3. Add the check without scanning existing rows (brief lock). NOT VALID only skips
+--    old rows: every insert and update is checked at once, hence steps 1-2 first
+ALTER TABLE users ADD CONSTRAINT users_phone_not_null CHECK (phone IS NOT NULL) NOT VALID;
+-- 4. Validate: scans the table but takes a weaker lock (reads and writes continue)
 ALTER TABLE users VALIDATE CONSTRAINT users_phone_not_null;
--- 4. SET NOT NULL now skips the full-table scan because the valid CHECK proves no NULLs
+-- 5. SET NOT NULL now skips the full-table scan because the valid CHECK proves no NULLs
+--    (PostgreSQL 12+), then drop the now-redundant check; both are brief
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
--- 5. Drop the now-redundant check
 ALTER TABLE users DROP CONSTRAINT users_phone_not_null;
 -- (Newer PostgreSQL versions also accept NOT NULL ... NOT VALID directly.)
 
