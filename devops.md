@@ -216,7 +216,7 @@ USER nodejs
 # Expose port
 EXPOSE 3000
 
-# Health check
+# Health check: healthcheck.js requests the liveness endpoint (GET /health)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
   CMD node healthcheck.js || exit 1
 
@@ -268,6 +268,7 @@ spec:
             port: 3000
           initialDelaySeconds: 30
           periodSeconds: 10
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /ready
@@ -559,30 +560,42 @@ echo "Backup successful: $DATE"
 - Scale horizontally when needed
 
 **Health checks**:
+
+Liveness (`/health`) must not depend on external services: if it checks the database or Redis, a dependency outage fails liveness on every pod and Kubernetes restarts all replicas in a loop. Put dependency checks in readiness (`/ready`), which takes a pod out of the Service without restarting it.
+
 ```javascript
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  const health = {
-    uptime: process.uptime(),
-    timestamp: Date.now(),
-    status: 'ok'
-  };
-  
-  try {
-    // Check database connection
-    await db.ping();
-    health.database = 'connected';
-    
-    // Check Redis connection
-    await redis.ping();
-    health.cache = 'connected';
-    
-    res.status(200).json(health);
-  } catch (error) {
-    health.status = 'error';
-    health.error = error.message;
-    res.status(503).json(health);
-  }
+// Liveness: process-only, never touches dependencies
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Bound each dependency check so a hung connection fails fast
+const withTimeout = (promise, ms = 1000) => {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
+
+// Readiness: checks dependencies, never returns raw error text
+app.get('/ready', async (req, res) => {
+  const checks = { database: () => db.ping(), cache: () => redis.ping() };
+  const ready = { status: 'ok', timestamp: Date.now() };
+
+  await Promise.all(Object.entries(checks).map(async ([name, check]) => {
+    try {
+      await withTimeout(check());
+      ready[name] = 'up';
+    } catch (error) {
+      ready[name] = 'down';
+      ready.status = 'error';
+      // Log details server-side; don't leak internals to the client
+      logger.error('Readiness check failed', { dependency: name, error: error.message });
+    }
+  }));
+
+  res.status(ready.status === 'ok' ? 200 : 503).json(ready);
 });
 ```
 
