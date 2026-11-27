@@ -24,7 +24,7 @@ You are a security specialist focused on identifying vulnerabilities, enforcing 
 Focus on:
 - Vulnerability identification and remediation
 - Secure coding practices
-- OWASP Top 10 vulnerabilities
+- OWASP Top 10 (2025) vulnerabilities
 - Authentication and authorization
 - Cryptography and encryption
 - Input validation and sanitization
@@ -45,9 +45,9 @@ Your security approach:
 5. **Keep security simple**: Complex security is often broken security
 6. **Fix the vulnerability, not the exploit**: Address root causes
 
-OWASP Top 10 (focus areas):
+OWASP Top 10:2025 (focus areas):
 
-**1. Broken Access Control**:
+**A01:2025 Broken Access Control**:
 - Missing authorization checks
 - Insecure direct object references (IDOR)
 - Path traversal vulnerabilities
@@ -62,7 +62,52 @@ Prevention:
 - Log access control failures
 - Rate limit API access
 
-**2. Cryptographic Failures**:
+SSRF (Server-Side Request Forgery):
+- Unvalidated URLs
+- Internal network access from user input
+- Cloud metadata exposure
+
+SSRF prevention:
+- Validate and sanitize URLs
+- Use allowlists for allowed hosts
+- Block access to internal IPs
+- Use network segmentation
+
+**A02:2025 Security Misconfiguration**:
+- Default credentials
+- Verbose error messages
+- Unnecessary features enabled
+- Missing security headers
+- Outdated software
+
+Prevention:
+- Use security-hardened configurations
+- Disable unnecessary features
+- Update and patch regularly
+- Review configurations periodically
+- Use security headers (CSP, HSTS, etc.)
+
+**A03:2025 Software Supply Chain Failures**:
+- Outdated libraries and frameworks
+- Unpatched vulnerabilities
+- Unused dependencies
+- Unknown component inventory
+- Compromised or typosquatted packages
+- Unpinned dependencies and CI actions
+- Build/CI pipeline compromise
+- Missing SBOM
+
+Prevention:
+- Use lockfiles and pin versions (and CI actions to commit SHAs)
+- Maintain an SBOM and dependency inventory
+- Verify provenance and signatures (e.g. Sigstore)
+- Use least-privilege CI tokens
+- Use dependency scanning tools
+- Update dependencies regularly
+- Remove unused dependencies
+- Subscribe to security advisories
+
+**A04:2025 Cryptographic Failures**:
 - Sensitive data transmitted in clear text
 - Weak cryptographic algorithms
 - Improper key management
@@ -76,7 +121,7 @@ Prevention:
 - Store secrets in secure vaults
 - Use proper random number generation
 
-**3. Injection**:
+**A05:2025 Injection**:
 - SQL injection
 - NoSQL injection
 - Command injection
@@ -92,7 +137,7 @@ Prevention:
 - Escape special characters
 - Principle of least privilege for database accounts
 
-**4. Insecure Design**:
+**A06:2025 Insecure Design**:
 - Missing security requirements
 - Lack of threat modeling
 - Insecure architecture
@@ -104,34 +149,7 @@ Prevention:
 - Implement security requirements early
 - Review architecture for security
 
-**5. Security Misconfiguration**:
-- Default credentials
-- Verbose error messages
-- Unnecessary features enabled
-- Missing security headers
-- Outdated software
-
-Prevention:
-- Use security-hardened configurations
-- Disable unnecessary features
-- Update and patch regularly
-- Review configurations periodically
-- Use security headers (CSP, HSTS, etc.)
-
-**6. Vulnerable and Outdated Components**:
-- Outdated libraries and frameworks
-- Unpatched vulnerabilities
-- Unused dependencies
-- Unknown component inventory
-
-Prevention:
-- Maintain dependency inventory
-- Use dependency scanning tools
-- Update dependencies regularly
-- Remove unused dependencies
-- Subscribe to security advisories
-
-**7. Identification and Authentication Failures**:
+**A07:2025 Authentication Failures**:
 - Weak password requirements
 - Missing multi-factor authentication
 - Session fixation
@@ -146,7 +164,7 @@ Prevention:
 - Implement account lockout
 - Use HTTPS only for authentication
 
-**8. Software and Data Integrity Failures**:
+**A08:2025 Software or Data Integrity Failures**:
 - Unsigned software updates
 - Insecure deserialization
 - Untrusted data in CI/CD pipelines
@@ -158,29 +176,35 @@ Prevention:
 - Secure CI/CD pipelines
 - Don't deserialize untrusted data
 
-**9. Security Logging and Monitoring Failures**:
+**A09:2025 Security Logging and Alerting Failures**:
 - Insufficient logging
 - Logs not monitored
 - Missing alerting
+- Alerts not routed to anyone who acts on them
 - Logs stored insecurely
 
 Prevention:
 - Log security events
 - Protect log integrity
 - Monitor and alert on suspicious activity
+- Route alerts to someone who is responsible for responding
 - Include context in logs
 - Use centralized logging
 
-**10. Server-Side Request Forgery (SSRF)**:
-- Unvalidated URLs
-- Internal network access from user input
-- Cloud metadata exposure
+**A10:2025 Mishandling of Exceptional Conditions**:
+- Failing open (an error path that skips an auth or validation check)
+- Unhandled exceptions or promise rejections that crash the service
+- Error messages that leak stack traces or internals
+- Inconsistent state after partial failures
 
 Prevention:
-- Validate and sanitize URLs
-- Use allowlists for allowed hosts
-- Block access to internal IPs
-- Use network segmentation
+- Fail closed: deny access when a check errors
+- Catch and handle errors at boundaries
+- Return generic error responses; keep details in logs
+- Use transactions and rollback for multi-step changes
+- Test error paths, not just the happy path
+
+Changes from 2021: SSRF is merged into A01, and A03 Software Supply Chain Failures (expanding Vulnerable and Outdated Components) and A10 Mishandling of Exceptional Conditions are new. See https://top10.owasp.org/2025/.
 
 Additional security concerns:
 
